@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Direct</title>
+    <style>
+    
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+    body {
+        font-family: 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #74ebd5, #acb6e5);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+    }
+
+    .container {
+        background: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        padding: 2rem;
+        width: 90%;
+        max-width: 600px;
+    }
+
+    .input-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+
+    input[type="tel"],
+    textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    input[type="tel"]:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #66afe9;
+        box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
+    }
+
+    button {
+        background: #28a745;
+        color: #fff;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s;
+    }
+
+    button:hover {
+        background: #218838;
+    }
+
+    .error-message {
+        color: #e74c3c;
+        font-size: 0.9rem;
+        margin-top: 5px;
+        display: none;
+    }
+
+    .message-management {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f9f9f9;
+        border-radius: 10px;
+    }
+
+    .message-inputs {
+        display: grid;
+        gap: 1rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+
+    th {
+        background: #28a745;
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .delete-btn {
+        background: #dc3545;
+        padding: 6px 12px;
+        border: none;
+        color: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-group">
+            <label>Enter Phone Number </label>
+            <input type="tel" id="phoneNumber" placeholder="Example: 7xxxxxxxxx" oninput="validateFirstDigit(this)">
+            <p id="error" class="error-message">Number cannot start with 0</p>
+        </div>
+
+        <div class="input-group">
+            <label>Optional Message</label>
+            <textarea id="message" placeholder="Type your message here" rows="4"></textarea>
+        </div>
+
+        <button onclick="openWhatsApp()">Open WhatsApp</button>
+
+        <div class="message-management">
+            <h3>Saved Messages</h3>
+            <div class="message-inputs">
+                <input type="text" id="msgName" placeholder="Message title">
+                <textarea id="msgContent" placeholder="Message content" rows="2"></textarea>
+                <button onclick="saveMessage()">Save Template</button>
+            </div>
+
+            <div class="saved-messages">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Content</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="messagesBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let messages = JSON.parse(localStorage.getItem('whatsappMessages')) || [];
+
+        function validateFirstDigit(input) {
+            const errorElement = document.getElementById("error");
+            if (input.value.startsWith('0')) {
+                input.value = input.value.substring(1);
+                errorElement.style.display = "block";
+            } else {
+                errorElement.style.display = "none";
+            }
+        }
+
+        function openWhatsApp() {
+            const phoneNumber = document.getElementById("phoneNumber").value.trim();
+            const message = document.getElementById("message").value.trim();
+            const baseUrl = `https://wa.me/964${phoneNumber}`;
+            
+            if (phoneNumber) {
+                const finalUrl = message ? `${baseUrl}?text=${encodeURIComponent(message)}` : baseUrl;
+                window.open(finalUrl, '_blank');
+                document.getElementById("phoneNumber").value = '';
+            }
+        }
+
+        function saveMessage() {
+            const name = document.getElementById('msgName').value.trim();
+            const content = document.getElementById('msgContent').value.trim();
+            
+            if (name && content) {
+                messages.push({name, content});
+                localStorage.setItem('whatsappMessages', JSON.stringify(messages));
+                updateMessagesTable();
+                document.getElementById('msgName').value = '';
+                document.getElementById('msgContent').value = '';
+            }
+        }
+
+        function deleteMessage(index) {
+            messages.splice(index, 1);
+            localStorage.setItem('whatsappMessages', JSON.stringify(messages));
+            updateMessagesTable();
+        }
+
+        function useMessage(content) {
+            document.getElementById('message').value = content;
+        }
+
+        function updateMessagesTable() {
+            const tbody = document.getElementById('messagesBody');
+            tbody.innerHTML = messages.map((msg, index) => `
+                <tr>
+                    <td>${msg.name}</td>
+                    <td>${msg.content}</td>
+                    <td>
+                        <button onclick="useMessage('${msg.content.replace(/'/g, "\\'")}')">Use</button>
+                        <button class="delete-btn" onclick="deleteMessage(${index})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.onload = updateMessagesTable;
+    </script>
+</body>
+</html>
